@@ -11,7 +11,7 @@ def board_reset():
                 piece = None
                 square = None
                 if y in (1, 8):
-                    piece = pieces[y-1]
+                    piece = pieces[x-1]
                 elif y in (2, 7):
                     piece = "p"
                 if y in white:
@@ -40,16 +40,15 @@ class Moves():
             self.direction = -1
 
     def pawn_forward(self):
-        """Single move forward by pawn"""
+        """Single move forward only, can't beat"""
         move = (self.x, self.y + 1 * self.direction)
         if self.board[move] or move[0] not in self.extent or move[1] not in self.extent:
             move = False
         return (move, None, False)
 
     def pawn_double(self):
-        """Pawn double move"""
+        """Double move forward only, can't beat"""
         if (self.direction == 1 and self.y != 2) or (self.direction == -1 and self.y != 7):
-            print("test")
             return (False, None, False)
         move = (self.x, self.y + 2 * self.direction)
         if self.board[move] and self.board[self.x, self.x + 1 * self.direction] or move[0] not in self.extent or move[1] not in self.extent:
@@ -57,7 +56,7 @@ class Moves():
         return (move, None, move)
     
     def pawn_attack(self, x):
-        """diagonal pawn attack"""
+        """diagonal pawn move and beat"""
         move = (self.x + x, self.y + 1 * self.direction)
         if self.board.get(move):
             if self.board[move]["color"] != self.piece["color"]:
@@ -73,24 +72,70 @@ class Moves():
                 return (move, attack, True)
         return (False, None, True)
 
+    def piece_move(self, x, y):
+        """Move and beat in any direction"""
+        move = (self.x + x, self.y + y)
+        if move[0] in self.extent and move[1] in self.extent:
+            if self.board.get(move):
+                if self.board[move]["color"] == self.piece["color"]:
+                    move = False
+            return (move, move, False)
+        return (False, None, False)
+
 class Pieces():
     """Class for pieces control and moves"""
     def __init__(self, board, info, start):
         self.board = board
         self.info = info
         self.start = start
+        self.moves = Moves(self.board, self.info, self.start)
+
+    def loop_directions(self, directions):
+        valid_moves = []
+        for dir in directions:
+            distance = 1
+            while True:
+                move = self.moves.piece_move(distance * dir[0], distance * dir[1])
+                valid_moves.append(move)
+                if not self.board.get(move[1]):
+                    distance = 1
+                    break
+                distance += 1
+        valid_moves = tuple(filter(lambda move: move[0] != False, valid_moves))
         
     def pawn_moves(self):
-        moves = Moves(self.board, self.info, self.start)
+        """returns a tuple of valid moves for pawn"""
         valid_moves = []
-        valid_moves.append(moves.pawn_forward())
-        valid_moves.append(moves.pawn_double())
-        valid_moves.append(moves.pawn_attack(1))
-        valid_moves.append(moves.pawn_attack(-1))
-        valid_moves.append(moves.pawn_en_passant(1))
-        valid_moves.append(moves.pawn_en_passant(-1))
-        valid_moves = tuple(filter(lambda move: move[0] != False, valid_moves))
-        return valid_moves
+        valid_moves.append(self.moves.pawn_forward())
+        valid_moves.append(self.moves.pawn_double())
+        valid_moves.append(self.moves.pawn_attack(1))
+        valid_moves.append(self.moves.pawn_attack(-1))
+        valid_moves.append(self.moves.pawn_en_passant(1))
+        valid_moves.append(self.moves.pawn_en_passant(-1))
+        return tuple(filter(lambda move: move[0] != False, valid_moves))
+    
+    def rook_moves(self):
+        """return tuple of valid moves for Rook"""
+        directions = ((1, 0), (-1, 0), (0, 1), (0, -1))
+        return self.loop_directions(directions)
+    
+    def horse_moves(self):
+        """return tuple of valid moves for Horse (Knight)"""
+        valid_moves = []
+        distances = ((2, 3), (2, -3), (-2, 3), (-2, -3), (3, 2), (3, -2), (-3, 2), (-3, -2))
+        for dist in distances:
+            valid_moves.append(self.moves.piece_move(dist[0], dist[1]))
+        return tuple(filter(lambda move: move[0] != False, valid_moves))           
+
+    def bishop_moves(self):
+        """return tuple of valid moves for Bishop"""
+        directions = ((1, 1), (1, -1), (-1, 1), (-1, -1))
+        return self.loop_directions(directions)
+
+    def queen_moves(self):
+        """return tuple of valid moves for Queen"""
+        directions = ((1, 1), (1, -1), (-1, 1), (-1, -1), (1, 0), (-1, 0), (0, 1), (0, -1))
+        return self.loop_directions(directions)
 
 class Game():
     """Class responsible for general game control"""
@@ -121,7 +166,14 @@ class Game():
             return False
 
         pieces = Pieces(self.board, self.info, start)
-        pieces_dict = {"p": pieces.pawn_moves()}
+        pieces_dict = {
+            "p": pieces.pawn_moves(),
+            "r": pieces.rook_moves(),
+            "h": pieces.horse_moves(),
+            "b": pieces.bishop_moves(),
+            "q": pieces.queen_moves(),
+            # "k": pieces.king_moves()            
+            }
 
         return pieces_dict[piece["piece"]]
         
@@ -142,6 +194,6 @@ round = Game(board)
 
 round.ascii()
 
-print(round.get_moves((1, 2)))
+print(round.get_moves((2, 1)))
 
 # # print(coord_calc("H3", -1, 1))
