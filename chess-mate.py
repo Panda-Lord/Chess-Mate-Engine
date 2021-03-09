@@ -1,3 +1,5 @@
+import random
+
 def board_reset():
         """Create and set up board"""
         white = (1, 2)
@@ -42,7 +44,9 @@ class Moves():
     def pawn_forward(self):
         """Single move forward only, can't beat"""
         move = (self.x, self.y + 1 * self.direction)
-        if self.board[move] or move[0] not in self.limits or move[1] not in self.limits:
+        if move[0] not in self.limits or move[1] not in self.limits:
+            move = False
+        elif self.board[move]:
             move = False
         return (move, None, False)
 
@@ -53,8 +57,6 @@ class Moves():
         if self.pawn_forward()[0] == False:
             return (False, None, False)
         move = (self.x, self.y + 2 * self.direction)
-        if self.board[move] and self.board[self.x, self.x + 1 * self.direction] or move[0] not in self.limits or move[1] not in self.limits:
-            move = False
         return (move, None, move)
     
     def pawn_attack(self, x):
@@ -70,8 +72,9 @@ class Moves():
         attack = (self.x + x, self.y)
         if self.en_passant == attack:
             move = (self.x + 1, self.y + 1 * self.direction)
-            if not self.board[move] and not self.board[self.x, self.x + 1 * self.direction] or move[0] in self.limits or move[1] in self.limits:
-                return (move, attack, True)
+            if move[0] in self.limits and move[1] in self.limits:
+                if not self.board[move] and not self.board[self.x, self.x + 1 * self.direction]:
+                    return (move, attack, True)
         return (False, None, True)
 
     def piece_move(self, x, y):
@@ -238,22 +241,7 @@ class Game():
     def get_moves(self, start):
         """Gets moves for specific piece based off its location via function in Pieces class"""
         piece = Pieces_Moves(self.board, self.info)
-        return piece.valid_moves_list(start)
-
-    def check_status(self, start):
-        """Retuns a tuple with False or True for (check, mate)"""
-        check = False
-        mate = False
-        for move in self.get_moves(start):
-            attack = self.board.get(move[1], False)
-            if attack:
-                if attack.get("piece", False) == "k":
-                    check = True
-                    if not self.get_moves(move[1]):
-                        mate = True
-        return (check, mate)
-
-    # def update_board(self, start, end, attack, check, mate)                   
+        return piece.valid_moves_list(start)            
 
     def move_piece(self, start, end):
         """Checks if correct player is taking the turn and then if then if move is in list of valid moves. Lastly, calls a function to check if "check" condition exists on king"""
@@ -282,6 +270,22 @@ class Game():
                     }
                 )
         return (False, "Invalid move")
+
+    # def update_board(self, start, end, attack, check, mate)      
+
+    def check_status(self, start):
+        """Retuns a tuple with False or True for (check, mate)"""
+        check = False
+        mate = False
+        for move in self.get_moves(start):
+            attack = self.board.get(move[1], False)
+            if attack:
+                if attack.get("piece", False) == "k":
+                    check = True
+                    if not self.get_moves(move[1]):
+                        mate = True
+                        print("check")
+        return (check, mate)
 
     def check_mate(self):
         """checks for game over / check mate status"""
@@ -313,13 +317,51 @@ class Game():
                     print(f"*** {update_game[1]}, try again. ***")
             else:
                 print("*** Not valid square, try again ***")
-            print(self.board)
-            print(self.info)
+            # print(self.board)
+            # print(self.info)
+            self.ascii()
+            check_mate = self.check_mate()
+
+    def play_random_ai(self):
+        check_mate = False
+        while not check_mate:
+            ai_moves = {}
+            if self.info["turn"] % 2 == 0:
+                color = "b"
+            else:
+                color = "w"
+            for position, piece in self.board.items():
+                if piece:
+                    if piece.get("color", False) == color:
+                        moves = self.get_moves(position)
+                        if moves:
+                            ai_moves[position] = moves
+            start = random.choice(list(ai_moves))
+            end = random.choice(ai_moves[start])[0]
+            print(f'move from {start}')
+            print(f'move to {end}')
+            valid_squares = True
+            for number in start[0], start[1], end[0], end[1]:
+                if number not in range(1,9):
+                    valid_squares = False
+            if valid_squares:
+                update_game = self.move_piece(start, end)
+                if update_game[0]:
+                    self.board = update_game[0]
+                    self.info = update_game[1]
+                else:
+                    print(f"*** {update_game[1]}, try again. ***")
+            else:
+                print("*** Not valid square, try again ***")
+            # print(self.board)
+            # print(self.info)
+            if end[1] in [1,8] and self.board[end]["piece"] == "p":
+                self.board[end]["piece"] = "q"
             self.ascii()
             check_mate = self.check_mate()
 
 board = board_reset()
-print(board)
+# print(board)
 new_game = Game(board)
 new_game.ascii()
-new_game.play()
+new_game.play_random_ai()
