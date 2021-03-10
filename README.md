@@ -1,4 +1,5 @@
 # Chess-Mate-Engine
-Chess engine for Alexa skill
+10.03.21
 
-Work in prgoress - 07.02.2021
+Chess game that can be playd in CLI.
+AI makes only random moves.
