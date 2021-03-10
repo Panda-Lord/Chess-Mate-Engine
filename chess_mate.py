@@ -1,7 +1,7 @@
 import random
 import chess_moves
-import ai_algo
-import pdb
+# import chess_ai
+# import pdb
 
 def board_reset():
         """Create and set up board"""
@@ -161,8 +161,18 @@ class Game():
             
     def ai_random(self, color):
         """gets random move"""
-        ai_moves = ai_algo.AI_Moves(self.board, self.info)
-        return ai_moves.random_move(color)
+        get_moves = chess_moves.Pieces_Moves(self.board, self.info)
+        moves = {}
+        for position, piece in self.board.items():
+            if piece:
+                if piece["color"] == color:
+                    move = get_moves.get_moves(position)
+                    if move:
+                        moves[position] = move
+        start = random.choice(list(moves))
+        move = random.choice(moves[start])
+        return (start, move)
+                            
 
     def game_update(self, move):
         start = move[0]
@@ -203,7 +213,14 @@ class Game():
         for position, piece in self.board.items():
             if position[1] == 1 or position[1] == 8:
                 if piece and piece["piece"] == "p":
-                    return position
+                    player = {
+                        "w": self.player_white,
+                        "b": self.player_black
+                    }
+                    if player[piece["color"]] == "human":
+                        return position
+                    elif player[piece["color"]] == "ai_random":
+                        self.swap("q", position)
         return False
 
     def swap(self, piece, position):
@@ -214,8 +231,12 @@ def main():
     end_game = False
     while not end_game:
         board = game.game_update(game.play())
+        swap = game.swap_eligible()
+        if swap:
+            game.swap(input("Congratulations, swap your pawn for:"), swap)
         if board[1]["stale_count"] == 50:
             end_game = "stale"
+        print(board)
         end_game = game.check_mate()
     status = {
         "stale": "*** Stale Mate! Game over! ***",
