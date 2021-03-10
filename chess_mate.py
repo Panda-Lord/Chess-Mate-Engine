@@ -199,6 +199,15 @@ class Game():
         }
         return player_fork[player](turn)
 
+    def swap_eligible(self):
+        for position, piece in self.board.items():
+            if position[1] == 1 or position[1] == 8:
+                if piece and piece["piece"] == "p":
+                    return position
+        return False
+
+    def swap(self, piece, position):
+        self.board[position]["piece"] = piece
 
 def main():
     game = Game(board_reset(), "human", "ai_random", True, None)
